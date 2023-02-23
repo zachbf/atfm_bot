@@ -15,8 +15,9 @@ from dotenv import load_dotenv
 load_dotenv()
 
 PDF_URL = os.environ['PDF_URL']
-EMAIL_USERNAME = os.environ['EMAIL_USERNAME']
-EMAIL_PASSWORD = os.environ['EMAIL_PASSWORD']
+MAILGUN_API_KEY = os.environ['MAILGUN_API_KEY']
+MAILGUN_DOMAIN = os.environ['MAILGUN_DOMAIN']
+EMAIL_FROM = os.environ['EMAIL_FROM']
 EMAIL_BCC_LIST = os.environ['EMAIL_BCC_LIST'].split(',')
 EMAIL_SUBJECT = 'ATFM Daily Plan Update'
 EMAIL_BODY = 'Please see the updated ATFM Daily Plan.'
@@ -43,8 +44,10 @@ def check_for_new_pdf():
 
         # Create an email message with the PDF file attached
         logging.info('PDF file has changed, sending email...')
+
+        # Create an email message with the PDF file attached
         message = MIMEMultipart()
-        message['From'] = EMAIL_USERNAME
+        message['From'] = EMAIL_FROM
         message['Bcc'] = ', '.join(EMAIL_BCC_LIST)
         message['Subject'] = EMAIL_SUBJECT
         message.attach(MIMEText(EMAIL_BODY))
@@ -57,12 +60,31 @@ def check_for_new_pdf():
             attachment.add_header('Content-Disposition', 'attachment', filename='ATFM_Daily_Plan.pdf')
             message.attach(attachment)
 
-        # Send the email
-        with smtplib.SMTP('smtp.office365.com', 587) as smtp:
-            smtp.starttls()
-            smtp.login(EMAIL_USERNAME, EMAIL_PASSWORD)
-            smtp.send_message(message)
-        logging.info('Email sent!')
+        with open('ATFM_Daily_Plan.pdf', 'wb') as f:
+            f.write(response.content)
+
+        with open('ATFM_Daily_Plan.pdf', 'rb') as f:
+            attachment = MIMEApplication(f.read(), _subtype='pdf')
+            attachment.add_header('Content-Disposition', 'attachment', filename='ATFM_Daily_Plan.pdf')
+            message.attach(attachment)
+
+        # Send the email using Mailgun API
+        response = requests.post(
+            f"https://api.mailgun.net/v3/{MAILGUN_DOMAIN}/messages",
+            auth=("api", MAILGUN_API_KEY),
+            files=[("attachment", ("ATFM_Daily_Plan.pdf", open("ATFM_Daily_Plan.pdf", "rb").read()))],
+            data={
+                "from": EMAIL_FROM,
+                "to": EMAIL_BCC_LIST,
+                "subject": EMAIL_SUBJECT,
+                "text": EMAIL_BODY
+            }
+        )
+
+        if response.status_code == 200:
+            logging.info('Email sent!')
+        else:
+            logging.info('Error sending email: {response.text}')
 
 if __name__ == '__main__':
     # Set up logging to file
