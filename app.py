@@ -84,7 +84,7 @@ def check_for_new_pdf():
         if response.status_code == 200:
             logging.info('Email sent!')
         else:
-            logging.info('Error sending email: {response.text}')
+            logging.info(f'Failed to send due to: {response.text}')
 
 if __name__ == '__main__':
     # Set up logging to file
