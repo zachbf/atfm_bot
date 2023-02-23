@@ -6,6 +6,7 @@ from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from pathlib import Path
+import logging
 
 import requests
 from bs4 import BeautifulSoup
@@ -23,10 +24,14 @@ EMAIL_BODY = 'Please see the updated ATFM Daily Plan.'
 # Global variable to store the hash of the last downloaded PDF
 last_pdf_hash = None
 
+# Set up logging
+logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', level=logging.INFO)
+
 def check_for_new_pdf():
     global last_pdf_hash
 
     # Download the PDF file
+    logging.info('Downloading PDF file...')
     response = requests.get(PDF_URL)
 
     # Calculate the hash of the PDF file
@@ -37,6 +42,7 @@ def check_for_new_pdf():
         last_pdf_hash = pdf_hash
 
         # Create an email message with the PDF file attached
+        logging.info('PDF file has changed, sending email...')
         message = MIMEMultipart()
         message['From'] = EMAIL_USERNAME
         message['Bcc'] = ', '.join(EMAIL_BCC_LIST)
@@ -56,8 +62,15 @@ def check_for_new_pdf():
             smtp.starttls()
             smtp.login(EMAIL_USERNAME, EMAIL_PASSWORD)
             smtp.send_message(message)
+        logging.info('Email sent!')
 
 if __name__ == '__main__':
+    # Set up logging to file
+    file_handler = logging.FileHandler('atfm_bot.log')
+    file_handler.setLevel(logging.INFO)
+    file_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+    logging.getLogger().addHandler(file_handler)
+
     while True:
         check_for_new_pdf()
         time.sleep(1800)  # Wait for 30 minutes before checking again
