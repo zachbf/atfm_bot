@@ -75,7 +75,8 @@ def check_for_new_pdf():
             files=[("attachment", ("ATFM_Daily_Plan.pdf", open("ATFM_Daily_Plan.pdf", "rb").read()))],
             data={
                 "from": EMAIL_FROM,
-                "to": EMAIL_BCC_LIST,
+                "to": EMAIL_FROM,
+                "bcc": EMAIL_BCC_LIST,
                 "subject": EMAIL_SUBJECT,
                 "text": EMAIL_BODY
             }
